@@ -1,6 +1,5 @@
 ﻿#ifndef IMGUI_SDL_H
 #define IMGUI_SDL_H
-
 struct ImDrawData;
 struct SDL_Renderer;
 

@@ -18,16 +18,18 @@ public:
 template <typename T, typename TOwner>
 class EventCallback: public IEventCallback  {
 private:
-	typedef void (TOwner::*CallbackFunction)(T&)
+	typedef void (TOwner::* CallbackFunction)(T&);
+
 	CallbackFunction callBackFunction;
 	TOwner* ownerInstance;
+
 	virtual void Call(Event& e) override {
-		invoke(callbackFunction, ownerInstance, static_cast<TEvent&>(e));
+		invoke(callBackFunction, ownerInstance, static_cast<T&>(e));
 	}
 public:
-	EventCallback(TOwner* ownerInstance, CallbackFunction callbackFunction) {
+	EventCallback(TOwner* ownerInstance, CallbackFunction callBackFunction) {
 		this->ownerInstance = ownerInstance;
-		this->callbackFunction = callbackFunction ;
+		this->callBackFunction = callBackFunction;
 	}
 	virtual ~EventCallback() override = default;
 };
@@ -39,10 +41,9 @@ private:
 	map<type_index, unique_ptr<HandlerList>> subscribers;
 public:
 	EventBus() = default;
-
 	template <typename T, typename TOwner>
 	void SubscribeToEvent(TOwner* ownerInstance, void (TOwner::*callbackFunction)(T&)) {
-		auto subscriber = make_unique<EventCallback<TOwner, T>>(ownerInstance, callbackFunction);
+		auto subscriber = make_unique<EventCallback<T, TOwner>>(ownerInstance, callbackFunction);
 		if (!subscribers[typeid(T)].get()) {
 			subscribers[typeid(T)] = make_unique<HandlerList>();
 		}
@@ -54,9 +55,12 @@ public:
 		if (handlers) {
 			for (auto it = handlers->begin(); it != handlers->end(); it++) {
 				auto handler = it->get();
-				TEvent event(forward<TArgs>(args)...);
+				T event(forward<TArgs>(args)...);
 				handler->Execute(event);
 			}
 		}
 	}
-};
+	void Reset() {
+		subscribers.clear();
+	}
+}; 

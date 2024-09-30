@@ -106,7 +106,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -133,16 +133,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="libs\imgui\imgui_impl_sdl.h" />
+    <ClInclude Include="src\Components\AnimationComponent.h" />
+    <ClInclude Include="src\Components\CameraFollowComponent.h" />
+    <ClInclude Include="src\Components\HealthComponent.h" />
+    <ClInclude Include="src\Components\KeyboardMovementComponent.h" />
+    <ClInclude Include="src\Components\BoxCollidorComponent.h" />
+    <ClInclude Include="src\Components\ProjectileComponent.h" />
+    <ClInclude Include="src\Components\ProjectileEmitterComponent.h" />
+    <ClInclude Include="src\Components\RigidBodyComponent.h" />
+    <ClInclude Include="src\Components\ScriptComponent.h" />
+    <ClInclude Include="src\Components\SpriteComponent.h" />
+    <ClInclude Include="src\Components\TextLabelComponent.h" />
+    <ClInclude Include="src\Components\TransformComponent.h" />
+    <ClInclude Include="src\ECS\ECS.h" />
     <ClInclude Include="src\EventBus\Event.h" />
     <ClInclude Include="src\EventBus\EventBus.h" />
     <ClInclude Include="src\Events\CollisionEvent.h" />
-    <ClInclude Include="src\Components\BoxCollidorComponent.h" />
+    <ClInclude Include="src\Events\KeyPressedEvent.h" />
+    <ClInclude Include="src\Game\Game.h" />
+    <ClInclude Include="src\Game\LevelLoader.h" />
+    <ClInclude Include="src\Logger\Logger.h" />
     <ClInclude Include="src\System\AnimationSystem.h" />
     <ClInclude Include="src\AssetManager\AssetManager.h" />
-    <ClInclude Include="src\Components\AnimationComponent.h" />
-    <ClInclude Include="src\Components\RigidBodyComponent.h" />
-    <ClInclude Include="src\Components\SpriteComponent.h" />
-    <ClInclude Include="src\ECS\ECS.h" />
     <ClInclude Include="libs\glm\common.hpp" />
     <ClInclude Include="libs\glm\detail\compute_common.hpp" />
     <ClInclude Include="libs\glm\detail\compute_vector_relational.hpp" />
@@ -391,22 +404,25 @@
     <ClInclude Include="libs\imgui\imstb_rectpack.h" />
     <ClInclude Include="libs\imgui\imstb_textedit.h" />
     <ClInclude Include="libs\imgui\imstb_truetype.h" />
-    <ClInclude Include="libs\lua\lauxlib.h" />
-    <ClInclude Include="libs\lua\lua.h" />
-    <ClInclude Include="libs\lua\lua.hpp" />
-    <ClInclude Include="libs\lua\luaconf.h" />
-    <ClInclude Include="libs\lua\lualib.h" />
     <ClInclude Include="libs\sol\._sol.hpp" />
     <ClInclude Include="libs\sol\sol.hpp" />
+    <ClInclude Include="src\System\CameraFollowSystem.h" />
     <ClInclude Include="src\System\CollidorRectangleRenderSystem.h" />
     <ClInclude Include="src\System\CollisionSystem.h" />
+    <ClInclude Include="src\System\CycleSystem.h" />
+    <ClInclude Include="src\System\DamageSystem.h" />
+    <ClInclude Include="src\System\KeyboardMovementSystem.h" />
     <ClInclude Include="src\System\MovementSystem.h" />
-    <ClInclude Include="src\Logger\Logger.h" />
-    <ClInclude Include="src\Game\Game.h" />
-    <ClInclude Include="src\Components\TransformComponent.h" />
+    <ClInclude Include="src\System\ProjectileEmitSystem.h" />
+    <ClInclude Include="src\System\RenderGuiSystem.h" />
+    <ClInclude Include="src\System\RenderHealthSystem.h" />
     <ClInclude Include="src\System\RenderSystem.h" />
+    <ClInclude Include="src\System\RenderTextSystem.h" />
+    <ClInclude Include="src\System\ScriptSystem.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\scripts\Level1.lua" />
+    <None Include="assets\tilemaps\jungle.map" />
     <None Include="libs\glm\detail\func_common.inl" />
     <None Include="libs\glm\detail\func_common_simd.inl" />
     <None Include="libs\glm\detail\func_exponential.inl" />
@@ -539,26 +555,31 @@
     <None Include="libs\glm\gtx\vector_angle.inl" />
     <None Include="libs\glm\gtx\vector_query.inl" />
     <None Include="libs\glm\gtx\wrap.inl" />
+    <None Include="lua53.dll" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Events\CollisionEvent.cpp" />
-    <ClCompile Include="src\AssetManager\AssetManager.cpp" />
-    <ClCompile Include="src\ECS\ECS.cpp" />
+    <ClCompile Include="libs\imgui\imgui_impl_sdl.cpp" />
     <ClCompile Include="libs\glm\detail\glm.cpp" />
     <ClCompile Include="libs\imgui\imgui.cpp" />
     <ClCompile Include="libs\imgui\imgui_demo.cpp" />
     <ClCompile Include="libs\imgui\imgui_draw.cpp" />
     <ClCompile Include="libs\imgui\imgui_sdl.cpp" />
     <ClCompile Include="libs\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="src\Logger\Logger.cpp" />
+    <ClCompile Include="src\AssetManager\AssetManager.cpp" />
+    <ClCompile Include="src\ECS\ECS.cpp" />
+    <ClCompile Include="src\Events\CollisionEvent.cpp" />
     <ClCompile Include="src\Game\Game.cpp" />
+    <ClCompile Include="src\Game\LevelLoader.cpp" />
+    <ClCompile Include="src\Logger\Logger.cpp" />
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="assets\images\bullet.png" />
     <Image Include="assets\images\tank-panther-down.png" />
     <Image Include="assets\images\tank-panther-right.png">
       <DeploymentContent>true</DeploymentContent>
     </Image>
+    <Image Include="assets\tilemaps\jungle.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

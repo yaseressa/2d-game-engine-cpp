@@ -32,9 +32,15 @@ public:
 class Entity {
 private:
 	int ID;
+
 public:
 	Entity(int ID) : ID(ID) {};
 	int GetID() const;
+	void Tag(const string& tag) ;
+	bool HasTag(const string& tag) const;
+	void Group(const string& group);
+	bool HasGroup(const string& group) const;
+
 	bool operator==(const Entity& other) const {
 		return this->GetID() == other.GetID();
 	};
@@ -83,43 +89,96 @@ void System::RequireComponent() {
 struct IPool {
 public: 
 	virtual ~IPool() = default;
+	virtual void RemoveEntityFromPool(int entityID) = 0;
 };
 template <typename T>
-class Pool: public IPool {
+class Pool : public IPool {
 private:
-	vector<T> components;
+	vector<T> data;
+	int size;  // Current size of valid elements
+	unordered_map<int, int> entityIdToIndex;
+	unordered_map<int, int> indexToEntityId;
+
 public:
-	Pool(int size = 100) {
-		Resize(size);
-	};
-	virtual ~Pool() = default;
-	bool IsEmpty() const {
-		return components.empty();
-	}
-	int GetSize() const {
-		return components.size();
-	}
-	void Resize(int size) {
-		components.resize(size);
-	}
-	void Clear() {
-		components.clear();
-	}
-	void Add(T component) {
-		components.push_back(component);
-	}
-	void Set(int idx, T component) {
-		components[idx]  = component;
-	}
-	T& Get(int idx) {
-		return static_cast<T&>(components[idx]);
-	}
-	T& operator [](int idx) {
-		return static_cast<T&>(components[idx]);
+	Pool(int capacity = 100) {
+		size = 0;
+		data.resize(capacity);  // Ensure initial capacity
 	}
 
-	
+	void RemoveEntityFromPool(int entityID) override {
+		if (entityIdToIndex.find(entityID) != entityIdToIndex.end()) {
+			Remove(entityID);
+		}
+	}
+
+	virtual ~Pool() = default;
+
+	bool IsEmpty() const {
+		return size == 0;
+	}
+
+	int GetSize() const {
+		return size;
+	}
+
+	void Resize(int newSize) {
+		data.resize(newSize);
+	}
+
+	void Clear() {
+		data.clear();
+		size = 0;
+	}
+
+	void Add(T object) {
+		if (size >= data.size()) {
+			Resize(data.size() * 2);  
+		}
+		data[size++] = object;
+	}
+
+	void Remove(int entityID) {
+		int indexOfRemoved = entityIdToIndex[entityID];
+		int indexOfLast = size - 1;
+
+		data[indexOfRemoved] = data[indexOfLast];
+
+		int entityOfLastElement = indexToEntityId[indexOfLast];
+		entityIdToIndex[entityOfLastElement] = indexOfRemoved;
+		indexToEntityId[indexOfRemoved] = entityOfLastElement;
+		entityIdToIndex.erase(entityID);
+		indexToEntityId.erase(indexOfLast);
+		size--;
+	}
+
+	void Set(int entityID, T object) {
+		if (entityIdToIndex.find(entityID) != entityIdToIndex.end()) {
+			int index = entityIdToIndex[entityID];
+			data[index] = object;
+		}
+		else {
+			int index = size;
+			entityIdToIndex[entityID] = index;
+			indexToEntityId[index] = entityID;
+
+			if (index >= data.size()) {
+				Resize(data.size() * 2);
+			}
+
+			data[index] = object;
+			size++;
+		}
+	}
+
+	T& Get(int entityID) {
+		return data[entityIdToIndex[entityID]];
+	}
+
+	T& operator[](int entityID) {
+		return data[entityIdToIndex[entityID]];
+	}
 };
+
 
 class WorldCordinator {
 private:
@@ -127,6 +186,10 @@ private:
 	vector<shared_ptr<IPool>> ComponentPools;
 	vector<Signature> EntityComponentSignatures;
 	unordered_map<type_index, shared_ptr<System>> systems;
+	unordered_map<int, string> tagPerEntity;
+	unordered_map<string, Entity> entityPerTag;
+	unordered_map<string, set<Entity>> entitiesPerGroup;
+	unordered_map<int, string> groupPerEntity;
 	set<Entity> entitiesToBeCreated;
 	set<Entity> entitiesToBekilled;
 	deque<int> freeIDs;
@@ -159,6 +222,17 @@ public:
 	void AddEntityToSystems(Entity entity);
 	void RemoveEntityFromSystems(Entity entity);
 	void Update();
+	// Tags
+	void TagEntity(Entity entity, const string& tag);
+	bool EntityHasTag(Entity entity, const string& tag) const;
+	Entity GetEntityByTag(const string& tag) const;
+	void RemoveEntityTag(Entity entity);
+	// Group
+	void GroupEntity(Entity entity, const string& group);
+	bool EntityHasGroup(Entity entity, const string& group) const;
+	vector<Entity> GetEntitiesByGroup(const string& group) const;
+	void RemoveEntityGroup(Entity entity);
+
 };
 
 template <typename T, typename ...TArgs>
@@ -166,32 +240,31 @@ void WorldCordinator::AddComponent(Entity entity, TArgs&& ...args) {
 	auto componentID = Component<T>::GetID();
 	auto entityID = entity.GetID();
 
+
 	if (componentID >= this->ComponentPools.size()) {
 		this->ComponentPools.resize(componentID + 1);
 	}
-	if (!ComponentPools[componentID]) {
+
+	if (!this->ComponentPools[componentID]) {
 		shared_ptr<Pool<T>> newPool = make_shared<Pool<T>>();
-		//Pool<T>* newPool = new Pool<T>();
 		this->ComponentPools[componentID] = newPool;
 	}
+
 	shared_ptr<Pool<T>> componentPool = static_pointer_cast<Pool<T>>(this->ComponentPools[componentID]);
 
-	if (entityID >= componentPool->GetSize()) {
-		componentPool->Resize(this->numberOfEntities);
-	}
 	T newComponent(forward<TArgs>(args)...);
+
 	componentPool->Set(entityID, newComponent);
 	this->EntityComponentSignatures[entityID].set(componentID);
 }
+
 template <typename T>
 void WorldCordinator::RemoveComponent(Entity entity) {
 	auto componentID = Component<T>::GetID();
 	auto entityID = entity.GetID();
 
-	if (!this->ComponentPools[componentID]) {
-		Logger::Error("No Component Found");
-		return;
-	}
+	shared_ptr<Pool<T>> componentPool = static_pointer_cast<Pool<T>>(this->ComponentPools[componentID]);
+	componentPool->Remove(entityID);
 	this->EntityComponentSignatures[entityID].set(componentID, false);
 };
 
@@ -255,5 +328,4 @@ template <typename T>
 T& Entity::GetComponent() {
 	return this->worldCordinator->GetComponent<T>(*this);
 };
-
 

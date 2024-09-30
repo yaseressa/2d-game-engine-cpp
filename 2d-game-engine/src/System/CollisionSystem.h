@@ -2,6 +2,7 @@
 #include "../ECS/ECS.h"
 #include "../Components/BoxCollidorComponent.h"
 #include "../Components/TransformComponent.h"
+#include "../Events/CollisionEvent.h"
 #include <glm/glm.hpp>
 #include <SDL.h>
 using namespace glm;
@@ -13,7 +14,7 @@ public:
 		RequireComponent<TransformComponent>();
 
 	}
-	void Update(SDL_Renderer* renderer){
+	void Update(SDL_Renderer* renderer, unique_ptr<EventBus>& eventBus){
 		SDL_SetRenderDrawColor(renderer, 255, 255, 2, 1);
 		auto entities = GetSystemEntities();
 		for (auto entityA = entities.begin(); entityA != entities.end(); entityA++) {
@@ -27,11 +28,10 @@ public:
 					transformA.position.y + collideA.offset.y < transformB.position.y + collideB.offset.y + collideB.height &&
 					transformA.position.y + collideA.offset.y + collideA.height > transformB.position.y + collideB.offset.y)
 				{
-					SDL_SetRenderDrawColor(renderer, 255, 0, 0, 1);
-					entityA->Kill();
-					entityB->Kill();
+					
+					eventBus->EmitEvent<CollisionEvent>(*entityA, *entityB);
 				}
 			}
 		}
 	}
-};
+}; 
